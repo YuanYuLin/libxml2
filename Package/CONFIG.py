@@ -11,6 +11,7 @@ tarball_dir = ""
 install_dir = ""
 install_tmp_dir = ""
 cc_host = ""
+tmp_include_dir = ""
 dst_include_dir = ""
 dst_lib_dir = ""
 src_pkgconfig_dir = ""
@@ -24,6 +25,7 @@ def set_global(args):
     global install_tmp_dir
     global tarball_dir
     global cc_host
+    global tmp_include_dir
     global dst_include_dir
     global dst_lib_dir
     global src_pkgconfig_dir
@@ -37,7 +39,8 @@ def set_global(args):
     cc_host_str = ops.getEnv("CROSS_COMPILE")
     cc_host = cc_host_str[:len(cc_host_str) - 1]
     #dst_include_dir = ops.path_join("include",args["pkg_name"])
-    dst_include_dir = ops.path_join(output_dir, ops.path_join("include",args["pkg_name"]))
+    tmp_include_dir = ops.path_join(output_dir, ops.path_join("include",args["pkg_name"]))
+    dst_include_dir = ops.path_join("include",args["pkg_name"])
     dst_lib_dir = ops.path_join(install_dir, "lib")
     src_pkgconfig_dir = ops.path_join(pkg_path, "pkgconfig")
     dst_pkgconfig_dir = ops.path_join(install_dir, "pkgconfig")
@@ -97,7 +100,7 @@ def MAIN_CONFIGURE(args):
     print "SDK include path:" + iopc.getSdkPath()
 
     extra_conf = []
-    extra_conf.append("--with-minimum")
+    #extra_conf.append("--with-minimum")
     extra_conf.append("--without-python")
     extra_conf.append("--with-output")
     extra_conf.append("--with-sax1")
@@ -115,28 +118,26 @@ def MAIN_BUILD(args):
     ops.mkdir(install_tmp_dir)
     iopc.make(tarball_dir)
     iopc.make_install(tarball_dir)
-    return False
-
-def MAIN_INSTALL(args):
-    set_global(args)
-
-    ops.mkdir(install_dir)
 
     ops.mkdir(dst_lib_dir)
-
     libxml2 = "libxml2.so.2.9.7"
     ops.copyto(ops.path_join(install_tmp_dir, "usr/local/lib/" + libxml2), dst_lib_dir)
     ops.ln(dst_lib_dir, libxml2, "libxml2.so.2")
     ops.ln(dst_lib_dir, libxml2, "libxml2.so")
 
-    ops.mkdir(dst_include_dir)
-    ops.copyto(ops.path_join(install_tmp_dir, "usr/local/include/libxml2/."), dst_include_dir)
+    ops.mkdir(tmp_include_dir)
+    ops.copyto(ops.path_join(install_tmp_dir, "usr/local/include/libxml2/."), tmp_include_dir)
 
     ops.mkdir(dst_pkgconfig_dir)
     ops.copyto(ops.path_join(src_pkgconfig_dir, '.'), dst_pkgconfig_dir)
 
+    return False
+
+def MAIN_INSTALL(args):
+    set_global(args)
+
     iopc.installBin(args["pkg_name"], ops.path_join(dst_lib_dir, "."), "lib")
-    iopc.installBin(args["pkg_name"], dst_include_dir, "include")
+    iopc.installBin(args["pkg_name"], ops.path_join(tmp_include_dir, "."), dst_include_dir)
     iopc.installBin(args["pkg_name"], ops.path_join(dst_pkgconfig_dir, '.'), "pkgconfig")
 
     return False
